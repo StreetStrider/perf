@@ -1,0 +1,14 @@
+{
+  "name": "perf",
+
+  "scripts":
+  {
+    "test": "node -r esm perf"
+  },
+
+  "dependencies":
+  {
+    "esm": "3",
+    "benny": "3"
+  }
+}
