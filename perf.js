@@ -31,6 +31,133 @@ Suite('zero',
 	}),
 ])
 
+function IterInside (seq)
+{
+	seq = [ ...seq ]
+
+	function each (fn)
+	{
+		for (var item of seq) fn(item)
+	}
+
+	return { each }
+}
+
+function IterIter (seq)
+{
+	seq = [ ...seq ]
+
+	function * iter ()
+	{
+		for (var item of seq) yield item
+	}
+
+	return { [Symbol.iterator]: iter }
+}
+
+xSuite('iter',
+[
+	Case('iterator', () =>
+	{
+		var n = 1
+		var seq = IterIter(Array(100).fill(null).map(Math.random))
+
+		return () =>
+		{
+			for (var x of seq)
+			{
+				n = x + n
+			}
+		}
+	}),
+	Case('inside', () =>
+	{
+		var n = 1
+		var seq = IterInside(Array(100).fill(null).map(Math.random))
+
+		return () =>
+		{
+			seq.each(x => { n = x + n })
+		}
+	}),
+])
+
+xSuite('vector',
+[
+	Case('push', () =>
+	{
+		var n = 1
+
+		function Random ()
+		{
+			var rnd = Math.random()
+			return (x) => { n = (n * x) }
+		}
+
+		var r = []
+		for (var n = 0; n < 5; n++)
+		{
+			r.push(Random())
+		}
+
+		return () =>
+		{
+			for (var n = 0; n < r.length; n++)
+			{
+				r[n]()
+			}
+		}
+	}),
+	Case('map', () =>
+	{
+		var n = 1
+
+		function Random ()
+		{
+			var rnd = Math.random()
+			return (x) => { n = (n * x) }
+		}
+
+		var r = Array(5).fill(null).map(Random)
+
+		return () =>
+		{
+			for (var n = 0; n < r.length; n++)
+			{
+				r[n]()
+			}
+		}
+	}),
+	Case('vector', () =>
+	{
+		var n = 1
+
+		function Random ()
+		{
+			var rnd = Math.random()
+			return (x) => { n = (n * x) }
+		}
+
+		// var r = []
+		// r.length = 5
+		var r = Array(5).fill(null)
+
+		for (var n = 0; n < 5; n++)
+		{
+			r[n] = Random()
+		}
+		// Object.freeze(r)
+
+		return () =>
+		{
+			for (var n = 0; n < r.length; n++)
+			{
+				r[n]()
+			}
+		}
+	}),
+])
+
 function compose (...fns)
 {
 	return (value) =>
@@ -70,7 +197,7 @@ function compose_eval (...fs)
 // var x = [1,2,10].map(compose_eval(x => x + 1, x => x * 5, x => x - 1))
 // console.log(x)
 
-Suite('compose',
+xSuite('compose',
 [
 	Case('classic', () =>
 	{
@@ -119,7 +246,7 @@ Suite('compose',
 	}),
 ])
 
-Suite('getter',
+xSuite('getter',
 [
 	Case('function getter', () =>
 	{
@@ -170,7 +297,7 @@ Suite('getter',
 	}),
 ])
 
-Suite('eval',
+xSuite('eval',
 [
 	Case('plain', () =>
 	{
