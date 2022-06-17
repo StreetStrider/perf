@@ -3,6 +3,13 @@ import { add as Case } from 'benny'
 import { suite } from 'benny'
 import { cycle, complete } from 'benny'
 
+function range (size)
+{
+	return new Array(size)
+	.fill(null)
+	.map((_, i) => i)
+}
+
 function xSuite () {}
 
 function Suite (name, cases)
@@ -31,6 +38,126 @@ Suite('zero',
 	}),
 ])
 
+
+var mulv = range(10 * 1000).map(x => x % 3)
+
+xSuite('mul',
+[
+	Case('mul hi-order', () =>
+	{
+		var sum = 0
+
+		function mul (a, b)
+		{
+			// return (c) => (a * b * c % 1000)
+			return (c) => (c * 3 * 7 % 1000)
+		}
+
+		var v = mulv
+		.map((x, i) => mul(x, i % 2))
+
+		return () =>
+		{
+			for (var i = 0; i < v.length; i++) sum += v[i](i)
+		}
+	}),
+
+	Case('mul hi-order memo', () =>
+	{
+		var sum = 0
+		var cache = {}
+
+		var single = (c) => (c * 3 * 7 % 1000)
+
+		function mul (a, b)
+		{
+			return single
+
+			/*
+			var key = [a, b].join(',')
+			if (key in cache)
+			{
+				return cache[key]
+			}
+
+			return (cache[key] = (c) => (a * b * c % 1000))
+			*/
+		}
+
+		var v = mulv
+		.map((x, i) => mul(x, i % 2))
+
+		return () =>
+		{
+			for (var i = 0; i < v.length; i++) sum += v[i](i)
+		}
+	}),
+])
+
+var pattern_mul = (x) => ((x > .25) && ((y) => x * y) || null)
+
+var pattern = Array(10e3)
+.fill(null)
+.map(() => ([ Math.random(), Math.random() ]))
+.map((_) => _.map(pattern_mul))
+.map(([ left, right ]) => ({ left, right }))
+
+xSuite('fn inline opt',
+[
+	Case('nulls', () =>
+	{
+		var sum = 0
+		var seq = [ ...pattern ]
+
+		return () =>
+		{
+			for (var i = 0, L = seq.length; (i < L); i++)
+			{
+				// var [ left, right ] = seq[i]
+				if (seq[i].left)  sum = seq[i].left(sum)
+				if (seq[i].right) sum = seq[i].right(sum)
+			}
+		}
+	}),
+
+	Case('noop', () =>
+	{
+		var noop = (x) => x * 1
+
+		var sum = 0
+		// var seq = pattern.map(xs => xs.map(x => x || noop))
+		var seq = pattern.map(({ left, right }) => ({ left: (left || noop), right: (right || noop) }))
+
+		return () =>
+		{
+			for (var i = 0, L = seq.length; (i < L); i++)
+			{
+				// var [ left, right ] = seq[i]
+				sum = seq[i].left(sum)
+				sum = seq[i].right(sum)
+			}
+		}
+	}),
+
+	Case('noops', () =>
+	{
+		var sum = 0
+		// var seq = pattern.map(xs => xs.map(x => x || ((x) => x * 1)))
+		var seq = pattern.map(({ left, right }) => ({ left: (left || ((x) => x * 1)), right: (right || ((x) => x * 1)) }))
+
+		return () =>
+		{
+			for (var i = 0, L = seq.length; (i < L); i++)
+			{
+				// var [ left, right ] = seq[i]
+				sum = seq[i].left(sum)
+				sum = seq[i].right(sum)
+			}
+		}
+	}),
+])
+
+
 function IterInside (seq)
 {
 	seq = [ ...seq ]
@@ -38,6 +165,18 @@ function IterInside (seq)
 	function each (fn)
 	{
 		for (var item of seq) fn(item)
+	}
+
+	return { each }
+}
+
+function IterFlat (seq)
+{
+	seq = [ ...seq ]
+
+	function each (fn)
+	{
+		for (var L = seq.length, i = 0; (i < L); i++) fn(seq[i])
 	}
 
 	return { each }
@@ -55,12 +194,35 @@ function IterIter (seq)
 	return { [Symbol.iterator]: iter }
 }
 
+
+var iter_size = 10000
+
 xSuite('iter',
 [
+	Case('flat', () =>
+	{
+		var n = 1
+		var seq = IterFlat(Array(iter_size).fill(null).map(Math.random))
+
+		return () =>
+		{
+			seq.each(x => { n = x + n })
+		}
+	}),
+	Case('inside', () =>
+	{
+		var n = 1
+		var seq = IterInside(Array(iter_size).fill(null).map(Math.random))
+
+		return () =>
+		{
+			seq.each(x => { n = x + n })
+		}
+	}),
 	Case('iterator', () =>
 	{
 		var n = 1
-		var seq = IterIter(Array(100).fill(null).map(Math.random))
+		var seq = IterIter(Array(iter_size).fill(null).map(Math.random))
 
 		return () =>
 		{
@@ -70,79 +232,72 @@ xSuite('iter',
 			}
 		}
 	}),
-	Case('inside', () =>
-	{
-		var n = 1
-		var seq = IterInside(Array(100).fill(null).map(Math.random))
-
-		return () =>
-		{
-			seq.each(x => { n = x + n })
-		}
-	}),
 ])
+
+
+var vector_size = (500 * 1000)
 
 xSuite('vector',
 [
-	Case('push', () =>
+	Case('[] push', () =>
 	{
-		var n = 1
+		var total = 1
 
 		function Random ()
 		{
 			var rnd = Math.random()
-			return (x) => { n = (n * x) }
+			return (x) => (x * rnd)
 		}
 
 		var r = []
-		for (var n = 0; n < 5; n++)
+		for (var n = 0; n < vector_size; n++)
 		{
 			r.push(Random())
 		}
 
 		return () =>
 		{
-			for (var n = 0; n < r.length; n++)
+			for (var n = 0; n < vector_size; n++)
 			{
-				r[n]()
+				total = r[n](total)
 			}
 		}
 	}),
-	Case('map', () =>
+	Case('fixed size fill-map', () =>
 	{
-		var n = 1
+		var total = 1
 
 		function Random ()
 		{
 			var rnd = Math.random()
-			return (x) => { n = (n * x) }
+			return (x) => (x * rnd)
 		}
 
-		var r = Array(5).fill(null).map(Random)
+		var r = Array(vector_size).fill(null).map(Random)
 
 		return () =>
 		{
-			for (var n = 0; n < r.length; n++)
+			for (var n = 0; n < vector_size; n++)
 			{
-				r[n]()
+				total = r[n](total)
 			}
 		}
 	}),
-	Case('vector', () =>
+	Case('fixed size', () =>
 	{
-		var n = 1
+		var total = 1
 
 		function Random ()
 		{
 			var rnd = Math.random()
-			return (x) => { n = (n * x) }
+			return (x) => (x * rnd)
 		}
 
-		// var r = []
-		// r.length = 5
-		var r = Array(5).fill(null)
+		// var r = []; r.length = vector_size
+		// var r = Array(vector_size)
+		var r = Array(vector_size).fill(null)
 
-		for (var n = 0; n < 5; n++)
+		for (var n = 0; n < vector_size; n++)
 		{
 			r[n] = Random()
 		}
@@ -150,9 +305,33 @@ xSuite('vector',
 
 		return () =>
 		{
-			for (var n = 0; n < r.length; n++)
+			for (var n = 0; n < vector_size; n++)
 			{
-				r[n]()
+				total = r[n](total)
+			}
+		}
+	}),
+	Case('[] unshift', () =>
+	{
+		var total = 1
+
+		function Random ()
+		{
+			var rnd = Math.random()
+			return (x) => (x * rnd)
+		}
+
+		var r = []
+		for (var n = 0; n < vector_size; n++)
+		{
+			r.unshift(Random())
+		}
+
+		return () =>
+		{
+			for (var n = 0; n < vector_size; n++)
+			{
+				total = r[n](total)
 			}
 		}
 	}),
@@ -199,10 +378,15 @@ function compose_eval (...fs)
 
 xSuite('compose',
 [
-	Case('classic', () =>
+	Case('straightforward compose', () =>
 	{
 		var t = 0
-		var f = compose(x => x + 1, x => x * 5, x => x - 1)
+
+		var f1 = x => x + 1
+		var f2 = x => x * 5
+		var f3 = x => x - 5
+
+		var f = x => f3(f2(f1(x)))
 
 		return () =>
 		{
@@ -219,25 +403,20 @@ xSuite('compose',
 			;[1,2,10].map(f).map(x => { t += x })
 		}
 	}),
-	Case('straightforward compose', () =>
+	Case('inlined compose', () =>
 	{
 		var t = 0
-
-		var f1 = x => x + 1
-		var f2 = x => x * 5
-		var f3 = x => x - 5
-
-		var f = x => f3(f2(f1(x)))
+		var f = x => (((x + 1) * 5) - 1)
 
 		return () =>
 		{
 			;[1,2,10].map(f).map(x => { t += x })
 		}
 	}),
-	Case('inlined compose', () =>
+	Case('classic', () =>
 	{
 		var t = 0
-		var f = x => (((x + 1) * 5) - 1)
+		var f = compose(x => x + 1, x => x * 5, x => x - 1)
 
 		return () =>
 		{
