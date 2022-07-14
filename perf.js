@@ -10,6 +10,22 @@ function range (size)
 	.map((_, i) => i)
 }
 
+function times (n, fn)
+{
+	return range(n).map(fn)
+}
+
+function randomkey ()
+{
+	return Math.random().toString(32).slice(2, 9)
+}
+
+function randomvalue ()
+{
+	return Math.floor(Math.random() * 10e3)
+}
+
+
 function xSuite () {}
 
 function Suite (name, cases)
@@ -34,6 +50,66 @@ Suite('zero',
 		return () =>
 		{
 			emit(-1)
+		}
+	}),
+])
+
+
+var dict_size = 500e3
+
+Suite('dict',
+[
+	Case('Map', () =>
+	{
+		var map = new Map
+		var sum = 0
+
+		times(dict_size, () => map.set(randomkey(), randomvalue()))
+
+		return () =>
+		{
+			sum += map.get(randomkey())
+		}
+	}),
+	Case('Map try/catch', () =>
+	{
+		var map = new Map
+		var sum = 0
+
+		times(dict_size, () => map.set(randomkey(), randomvalue()))
+
+		return () =>
+		{
+			try
+			{
+				sum += map.get(randomkey())
+			}
+			catch (e) {}
+		}
+	}),
+	Case('object', () =>
+	{
+		var dict = {}
+		var sum = 0
+
+		times(dict_size, () => dict[randomkey()] = randomvalue())
+
+		return () =>
+		{
+			sum += dict[randomkey()]
+		}
+	}),
+
+	Case('object null', () =>
+	{
+		var dict = Object.create(null)
+		var sum = 0
+
+		times(dict_size, () => dict[randomkey()] = randomvalue())
+
+		return () =>
+		{
+			sum += dict[randomkey()]
 		}
 	}),
 ])
@@ -235,51 +311,56 @@ xSuite('iter',
 ])
 
 
-var vector_size = (500 * 1000)
+var vector_size = 500e3
 
-xSuite('vector',
+Suite('vector',
 [
-	Case('[] push', () =>
+	Case('[] index (no len)', () =>
 	{
 		var total = 1
-
-		function Random ()
-		{
-			var rnd = Math.random()
-			return (x) => (x * rnd)
-		}
-
 		var r = []
+
 		for (var n = 0; n < vector_size; n++)
 		{
-			r.push(Random())
+			r[n] = randomvalue()
 		}
 
 		return () =>
 		{
 			for (var n = 0; n < vector_size; n++)
 			{
-				total = r[n](total)
+				total += r[n]
+			}
+		}
+	}),
+	Case('[] push', () =>
+	{
+		var total = 1
+		var r = []
+
+		for (var n = 0; n < vector_size; n++)
+		{
+			r.push(randomvalue())
+		}
+
+		return () =>
+		{
+			for (var n = 0; n < vector_size; n++)
+			{
+				total += r[n]
 			}
 		}
 	}),
 	Case('fixed size fill-map', () =>
 	{
 		var total = 1
-
-		function Random ()
-		{
-			var rnd = Math.random()
-			return (x) => (x * rnd)
-		}
-
-		var r = Array(vector_size).fill(null).map(Random)
+		var r = Array(vector_size).fill(null).map(randomvalue)
 
 		return () =>
 		{
 			for (var n = 0; n < vector_size; n++)
 			{
-				total = r[n](total)
+				total += r[n]
 			}
 		}
 	}),
@@ -287,19 +368,13 @@ xSuite('vector',
 	{
 		var total = 1
 
-		function Random ()
-		{
-			var rnd = Math.random()
-			return (x) => (x * rnd)
-		}
-
 		// var r = []; r.length = vector_size
 		// var r = Array(vector_size)
 		var r = Array(vector_size).fill(null)
 
 		for (var n = 0; n < vector_size; n++)
 		{
-			r[n] = Random()
+			r[n] = randomvalue()
 		}
 		// Object.freeze(r)
 
@@ -307,34 +382,30 @@ xSuite('vector',
 		{
 			for (var n = 0; n < vector_size; n++)
 			{
-				total = r[n](total)
+				total += r[n]
 			}
 		}
 	}),
+	/* // super slow on allocate
 	Case('[] unshift', () =>
 	{
 		var total = 1
-
-		function Random ()
-		{
-			var rnd = Math.random()
-			return (x) => (x * rnd)
-		}
-
 		var r = []
+
 		for (var n = 0; n < vector_size; n++)
 		{
-			r.unshift(Random())
+			r.unshift(randomvalue())
 		}
 
 		return () =>
 		{
 			for (var n = 0; n < vector_size; n++)
 			{
-				total = r[n](total)
+				total += r[n]
 			}
 		}
 	}),
+	*/
 ])
 
 function compose (...fns)
