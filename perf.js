@@ -58,20 +58,99 @@ Suite('zero',
 // dict
 {
 
-var dict_size = 500e3
+var dict_size = 1e3
+var dict_keys = times(dict_size, () => [ randomkey(), randomvalue() ])
 
 Suite('dict',
 [
+	Case('object', () =>
+	{
+		var dict = {}
+		var sum = 0
+
+		dict_keys.forEach(([ k, v ]) => { dict[k] = v })
+
+		return () =>
+		{
+			for (var k of dict_keys)
+			{
+				sum += dict[k]
+			}
+		}
+	}),
+	Case('object iter', () =>
+	{
+		var dict = {}
+		var sum = 0
+
+		dict_keys.forEach(([ k, v ]) => { dict[k] = v })
+
+		return () =>
+		{
+			for (var k in dict)
+			{
+				sum += dict[k]
+			}
+		}
+	}),
+	Case('object null', () =>
+	{
+		var dict = Object.create(null)
+		var sum = 0
+
+		dict_keys.forEach(([ k, v ]) => { dict[k] = v })
+
+		return () =>
+		{
+			for (var k of dict_keys)
+			{
+				sum += dict[k]
+			}
+		}
+	}),
+	Case('object null iter', () =>
+	{
+		var dict = Object.create(null)
+		var sum = 0
+
+		dict_keys.forEach(([ k, v ]) => { dict[k] = v })
+
+		return () =>
+		{
+			for (var k in dict)
+			{
+				sum += dict[k]
+			}
+		}
+	}),
 	Case('Map', () =>
 	{
 		var map = new Map
 		var sum = 0
 
-		times(dict_size, () => map.set(randomkey(), randomvalue()))
+		dict_keys.forEach(([ k, v ]) => map.set(k, v))
 
 		return () =>
 		{
-			sum += map.get(randomkey())
+			for (var k of dict_keys)
+			{
+				sum += map.get(k)
+			}
+		}
+	}),
+	Case('Map iter', () =>
+	{
+		var map = new Map
+		var sum = 0
+
+		dict_keys.forEach(([ k, v ]) => map.set(k, v))
+
+		return () =>
+		{
+			for (var [k, v] of map)
+			{
+				sum += v
+			}
 		}
 	}),
 	Case('Map try/catch', () =>
@@ -79,40 +158,20 @@ Suite('dict',
 		var map = new Map
 		var sum = 0
 
-		times(dict_size, () => map.set(randomkey(), randomvalue()))
+		dict_keys.forEach(([ k, v ]) => map.set(k, v))
 
 		return () =>
 		{
 			try
 			{
-				sum += map.get(randomkey())
+
+			for (var k of dict_keys)
+			{
+				sum += map.get(k)
+			}
+
 			}
 			catch (e) {}
-		}
-	}),
-	Case('object', () =>
-	{
-		var dict = {}
-		var sum = 0
-
-		times(dict_size, () => dict[randomkey()] = randomvalue())
-
-		return () =>
-		{
-			sum += dict[randomkey()]
-		}
-	}),
-
-	Case('object null', () =>
-	{
-		var dict = Object.create(null)
-		var sum = 0
-
-		times(dict_size, () => dict[randomkey()] = randomvalue())
-
-		return () =>
-		{
-			sum += dict[randomkey()]
 		}
 	}),
 ])
@@ -230,23 +289,6 @@ var set_size = 50e3
 
 Suite('set',
 [
-	Case('for-of', () =>
-	{
-		var set = new Set
-		times(set_size, () =>
-		{
-			set.add(randomvalue())
-		})
-
-		var n = 0
-		return () =>
-		{
-			for (var s of set)
-			{
-				n = n + s
-			}
-		}
-	}),
 	Case('forEach', () =>
 	{
 		var set = new Set
@@ -295,6 +337,23 @@ Suite('set',
 			for (var i = 0; i < set_size; i++)
 			{
 				n = n + set[i]
+			}
+		}
+	}),
+	Case('for-of', () =>
+	{
+		var set = new Set
+		times(set_size, () =>
+		{
+			set.add(randomvalue())
+		})
+
+		var n = 0
+		return () =>
+		{
+			for (var s of set)
+			{
+				n = n + s
 			}
 		}
 	}),
