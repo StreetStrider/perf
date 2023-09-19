@@ -1,14 +1,21 @@
 {
   "name": "perf",
+  "private": true,
+
+  "type": "module",
+
+  "imports":
+  {
+    "#perf": "./core.js"
+  },
 
   "scripts":
   {
-    "test": "node -r esm perf"
+    "test": "node dict.js"
   },
 
   "dependencies":
   {
-    "esm": "3",
-    "benny": "3"
+    "benny": "3.7.1"
   }
 }
