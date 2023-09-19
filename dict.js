@@ -74,7 +74,6 @@ Suite('dict',
 
 		data.forEach(([ k, v ]) => dict.set(k, v))
 
-		console.log(111, dict.size, size)
 		assert(dict.size === size)
 
 		return () =>
@@ -92,7 +91,6 @@ Suite('dict',
 
 		data.forEach(([ k, v ]) => dict.set(k, v))
 
-		console.log(111, dict.size, size)
 		assert(dict.size === size)
 
 		return () =>
@@ -103,27 +101,27 @@ Suite('dict',
 			}
 		}
 	}),
-	/*
 	Case('Map try/catch', () =>
 	{
-		var map = new Map
-		var sum = 0
+		const dict = new Map
+		let T = 0
 
-		dict_keys.forEach(([ k, v ]) => map.set(k, v))
+		data.forEach(([ k, v ]) => dict.set(k, v))
+
+		assert(dict.size === size)
 
 		return () =>
 		{
 			try
 			{
 
-			for (var k of dict_keys)
+			for (const k of keys)
 			{
-				sum += map.get(k)
+				T = (T + dict.get(k))
 			}
 
 			}
 			catch (e) {}
 		}
 	}),
-	*/
 ])
