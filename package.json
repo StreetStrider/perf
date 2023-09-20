@@ -11,7 +11,7 @@
 
   "scripts":
   {
-    "test": "node dict.js"
+    "test": "node dict.js; node seq.js"
   },
 
   "dependencies":
